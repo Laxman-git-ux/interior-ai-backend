@@ -1,28 +1,24 @@
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI
 from fastapi.responses import JSONResponse
-import uuid, os
-
-app = FastAPI()
-
-UPLOAD_DIR = "uploads"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-
-@app.get("/")
-def home():
-    return {"message": "Interior AI Backend Running"}
+import base64, uuid, os
 
 @app.post("/process")
-async def process(file: UploadFile = File(...)):
+async def process(payload: dict):
+    filename = payload.get("filename")
+    content = payload.get("content")  # base64 string
+
+    # Decode base64
+    image_bytes = base64.b64decode(content)
+
     file_id = str(uuid.uuid4())
-    ext = file.filename.split(".")[-1]
-    filepath = f"{UPLOAD_DIR}/{file_id}.{ext}"
+    filepath = f"uploads/{file_id}.jpg"
 
-    # Save uploaded image
+    # Save image
     with open(filepath, "wb") as f:
-        f.write(await file.read())
+        f.write(image_bytes)
 
-    # Dummy masks (replace with real masks later)
-    response = {
+    # Dummy mask response
+    return {
         "projectId": file_id,
         "objects": [
             {
@@ -36,11 +32,4 @@ async def process(file: UploadFile = File(...)):
                 "mask_url": f"https://placehold.co/200x200/999999/000000?text=Floor+Mask"
             }
         ]
-    }
-    return JSONResponse(response)
-
-@app.post("/recolor")
-async def recolor(payload: dict):
-    return {
-        "result_image_url": "https://placehold.co/600x400.png?text=Recolored+Image"
     }
